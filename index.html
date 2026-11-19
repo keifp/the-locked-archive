@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Locked Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+/* Layout: an escape-room learning game, third in the Candler sample set. It keeps the navy masthead with a gold rule, Caslon and Source Sans type, and the faith-icon band. A room panel holds four cabinets and a door; selecting a cabinet opens its puzzle below. A timer, hint counter, and collected letters sit in a sticky status bar. */
+:root{
+  --bg:#f4f5f7;--surface:#fff;--ink:#0c1a33;--muted:#4c586b;--line:#d5dbe4;
+  --navy:#012169;--navy-soft:#e6ebf5;--gold:#f2a900;--gold-ink:#6e4d00;--gold-soft:#fcf1d4;
+  --ok:#1f6b3a;--ok-soft:#e5f2e9;--warn:#9b2c1e;--warn-soft:#fbe9e6;--focus:#0b5fd6;
+  --wood:#5b3a1e;--wood-2:#7a5230;--parch:#f3e9d2;--parch-ink:#3b2a14;--uv:#6a2bd9;
+  --font-read:"Libre Caslon Text",Georgia,"Times New Roman",serif;
+  --font-ui:"Source Sans 3","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0a1120;--surface:#111a2e;--ink:#e9edf5;--muted:#a9b4c8;--line:#27334f;
+  --navy:#a3b8ee;--navy-soft:#1a2747;--gold-ink:#f2c45a;--gold-soft:#2a2414;
+  --ok:#7fd49b;--ok-soft:#14301f;--warn:#ff9b8a;--warn-soft:#3a1d1a;--focus:#8fb4ff;--uv:#c9a6ff;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a1120;--surface:#111a2e;--ink:#e9edf5;--muted:#a9b4c8;--line:#27334f;
+  --navy:#a3b8ee;--navy-soft:#1a2747;--gold-ink:#f2c45a;--gold-soft:#2a2414;
+  --ok:#7fd49b;--ok-soft:#14301f;--warn:#ff9b8a;--warn-soft:#3a1d1a;--focus:#8fb4ff;--uv:#c9a6ff;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:17px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:48px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+h1,h2,h3{font-family:var(--font-read);font-weight:400;line-height:1.2;margin:0;text-wrap:balance}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:40px}
+.masthead{background:#012169;color:#fff;border-bottom:5px solid #f2a900;margin:0 calc(-1 * max(16px,env(safe-area-inset-right,0px))) 28px calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.mh-in{max-width:1120px;margin:0 auto;padding:18px 0 20px;display:flex;flex-wrap:wrap;gap:10px 24px;align-items:flex-end;justify-content:space-between}
+.mh-kicker{display:block;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#d7def0;margin-bottom:4px}
+.mh-course{font-family:var(--font-read);font-size:clamp(20px,2.6vw,26px)}
+.mh-mod{font-size:15px;border-left:2px solid #f2a900;padding-left:12px}
+.faiths{width:min(340px,100%);height:auto;color:var(--gold-ink)}
+.faithband{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.faithband small{font-size:14px;color:var(--muted)}
+.eyebrow{font-size:14px;font-weight:700;color:var(--gold-ink);letter-spacing:.04em}
+.hero h1{font-size:clamp(36px,5.4vw,56px)}
+.hero p{margin:0;color:var(--muted);font-size:18px}
+.intro .byline{font-size:16px}
+.byline b{color:var(--ink);font-weight:600}
+.btn{font:700 15px var(--font-ui);background:var(--navy);color:var(--surface);border:0;border-radius:2px;padding:10px 16px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--navy);border:1px solid var(--navy)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.small{font-size:14px;color:var(--muted);margin:0}
+
+/* status bar */
+.status{position:sticky;top:0;z-index:20;background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--navy);display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;justify-content:space-between;padding:10px 14px}
+.status .s{display:flex;gap:6px;align-items:baseline;font-size:15px;color:var(--muted)}
+.status .s b{font-family:var(--font-read);font-size:22px;color:var(--ink);font-weight:400}
+.tokens{display:flex;gap:6px}
+.token{width:34px;height:34px;border:1px dashed var(--muted);border-radius:50%;display:grid;place-items:center;font-family:var(--font-read);font-size:18px;color:var(--muted)}
+.token.got{border:2px solid var(--gold);background:var(--gold-soft);color:var(--gold-ink);font-weight:700}
+
+/* poster */
+.poster{position:relative;overflow:hidden;color:#fff;border-radius:4px;min-height:420px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:center;
+  background:radial-gradient(ellipse 60% 70% at 72% 45%,rgba(242,169,0,.38),transparent 60%),radial-gradient(ellipse 50% 60% at 10% 100%,rgba(106,43,217,.28),transparent 60%),linear-gradient(160deg,#0d1d4d 0%,#012169 45%,#060c22 100%)}
+.poster::before{content:"";position:absolute;inset:-20%;background:repeating-linear-gradient(105deg,rgba(255,224,160,.0) 0 60px,rgba(255,224,160,.07) 60px 120px,rgba(255,224,160,0) 120px 210px);-webkit-mask-image:radial-gradient(ellipse at 75% 20%,#000,transparent 70%);mask-image:radial-gradient(ellipse at 75% 20%,#000,transparent 70%);pointer-events:none}
+.grain::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;mix-blend-mode:overlay;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.poster .copy{position:relative;z-index:2;padding:36px clamp(20px,4vw,48px);display:grid;gap:14px}
+.poster .kick{font:700 13px var(--font-ui);letter-spacing:.32em;text-transform:uppercase;color:#f2c45a}
+.poster h1{font-family:"Bebas Neue",Impact,"Arial Narrow",sans-serif;font-size:clamp(64px,10vw,124px);line-height:.86;letter-spacing:.02em;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.25),0 0 40px rgba(242,169,0,.35)}
+.poster h1 span{display:block;background:linear-gradient(180deg,#ffe7a6,#f2a900 70%,#c98a00);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 18px rgba(242,169,0,.35))}
+.poster .tag{font:italic 400 clamp(18px,2vw,22px)/1.4 var(--font-read);color:#e8ecf7;margin:0;max-width:30ch}
+.poster .btn{text-decoration:none;background:#f2a900;color:#012169;justify-self:start;font-size:16px;padding:12px 20px}
+.poster .art{position:relative;z-index:1;height:100%;min-height:320px}
+.poster .art svg{position:absolute;inset:0;width:100%;height:100%}
+.dust i{position:absolute;width:3px;height:3px;border-radius:50%;background:#ffe2a0;opacity:.0;box-shadow:0 0 6px #ffd27a}
+@media (prefers-reduced-motion:no-preference){.dust i{animation:float 9s linear infinite}@keyframes float{0%{transform:translate(0,30px);opacity:0}20%{opacity:.8}100%{transform:translate(28px,-160px);opacity:0}}}
+.intro{display:grid;gap:10px}
+.intro p{margin:0;color:var(--muted);font-size:18px;max-width:72ch}
+
+/* room */
+.room{position:relative;overflow:hidden;border-radius:4px;padding:34px 22px 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,1.15fr);gap:16px;align-items:end;
+  background:radial-gradient(ellipse 40% 60% at 88% 10%,rgba(255,210,130,.25),transparent 70%),linear-gradient(180deg,#1c1209 0%,#2e1d0f 55%,#3a2512 82%,#22160a 82.5%,#2b1b0c 100%)}
+.room::before{content:"";position:absolute;inset:0;background:linear-gradient(118deg,transparent 42%,rgba(255,220,150,.10) 50%,transparent 62%),repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 2px,transparent 2px 70px);pointer-events:none}
+.cab{position:relative;z-index:1;background:linear-gradient(90deg,#4a2e14,#6d4521 12%,#5a3819 50%,#6d4521 88%,#4a2e14);border:0;border-radius:6px 6px 0 0;padding:14px 10px 12px;color:#f6ead2;font:600 15px var(--font-ui);text-align:center;cursor:pointer;display:grid;gap:10px;box-shadow:0 18px 30px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.08);transition:transform .2s}
+.cab::before{content:"";position:absolute;left:-6px;right:-6px;top:-10px;height:12px;background:linear-gradient(#7d5228,#4a2e14);border-radius:3px}
+.cab .lbl{font-family:"Bebas Neue",Impact,sans-serif;font-weight:400;font-size:clamp(17px,2.2vw,24px);overflow-wrap:anywhere;letter-spacing:.06em;color:#ffe2a0}
+.cab .glass{background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,0) 40%),#160d05;border:3px solid #8a5a2b;border-radius:3px;padding:8px 6px 0;display:grid;gap:8px;position:relative}
+.cab .glass::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.14) 0 8%,transparent 8% 40%,rgba(255,255,255,.06) 40% 44%,transparent 44%);pointer-events:none}
+.books{display:flex;align-items:flex-end;gap:2px;height:46px;border-bottom:5px solid #8a5a2b;padding:0 2px}
+.books b{display:block;border-radius:1px 1px 0 0;box-shadow:inset -2px 0 0 rgba(0,0,0,.25),inset 0 6px 0 rgba(255,255,255,.08)}
+.books b.band{background-image:linear-gradient(transparent 18%,#e3b54a 18% 24%,transparent 24% 74%,#e3b54a 74% 80%,transparent 80%)!important}
+.books b.lean{transform:rotate(-12deg);transform-origin:bottom left;margin-left:6px}
+.padlock{width:44px;height:52px;justify-self:center;filter:drop-shadow(0 3px 4px rgba(0,0,0,.5))}
+.cab .lock{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#f6ead2}
+.cab[data-state="open"]{box-shadow:0 0 0 3px #f2a900,0 0 40px rgba(242,169,0,.45),0 18px 30px rgba(0,0,0,.45)}
+.cab[data-state="open"] .glass{background:radial-gradient(ellipse at 50% 60%,rgba(255,200,90,.35),transparent 70%),#2a1806}
+.cab[data-state="open"] .lock{color:#ffd56a}
+.cab:hover,.cab[aria-expanded="true"]{transform:translateY(-4px);outline:3px solid #f2a900;outline-offset:2px}
+.door{position:relative;z-index:1;align-self:stretch;margin-top:-10px;background:linear-gradient(90deg,#3b2410,#5a3819 30%,#4a2e14 70%,#3b2410);border:6px solid #2a1808;border-bottom:0;border-radius:120px 120px 0 0;min-height:300px;display:grid;grid-template-rows:auto 1fr auto;justify-items:center;color:#f6ead2;text-align:center;padding:16px 14px 18px;cursor:pointer;font:600 15px var(--font-ui);box-shadow:0 18px 30px rgba(0,0,0,.5)}
+.door .transom{width:84%;height:auto}
+.door .label{font-family:"Bebas Neue",Impact,sans-serif;font-size:28px;letter-spacing:.08em;color:#ffe2a0;align-self:center}
+.door .panels{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:80%}
+.door .panels i{height:46px;border:2px solid rgba(0,0,0,.35);box-shadow:inset 0 0 0 2px rgba(255,255,255,.05);border-radius:2px}
+.door .kh{width:30px;height:46px}
+.door[data-ready="true"]{box-shadow:0 0 0 3px #f2a900,0 0 50px rgba(242,169,0,.5)}
+.door:hover,.door[aria-expanded="true"]{outline:3px solid #f2a900;outline-offset:2px}
+.rug{grid-column:1/-1;height:18px;margin:0 -22px;background:linear-gradient(90deg,#5e1d1d,#7a2626 20%,#5e1d1d 40%,#7a2626 60%,#5e1d1d);border-top:3px solid #c9a24a}
+.pico{width:34px;height:34px;color:var(--gold-ink);flex:none}
+.phead{display:flex;gap:12px;align-items:center}
+/* puzzle panel */
+.panel{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--gold);padding:20px 22px;display:grid;gap:14px}
+.panel h2{font-size:clamp(24px,3vw,30px)}
+.step{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-ink)}
+.goal{background:var(--navy-soft);padding:10px 14px;border-left:4px solid var(--navy);font-size:16px;margin:0}
+.feedback{min-height:1.5em;font-size:16px;margin:0}
+.feedback.ok{color:var(--ok)}.feedback.no{color:var(--warn)}
+.hintbox{background:var(--gold-soft);border-left:4px solid var(--gold);padding:10px 14px;font-size:16px;margin:0}
+.learned{background:var(--ok-soft);border-left:4px solid var(--ok);padding:12px 14px;margin:0;font-size:16px}
+
+/* genre */
+.pool{display:flex;flex-wrap:wrap;gap:8px;min-height:56px;padding:10px;border:1px dashed var(--muted)}
+.chip{font:400 16px/1.4 var(--font-read);background:var(--parch);color:var(--parch-ink);border:1px solid #b9a27a;border-radius:2px;padding:8px 10px;cursor:grab;text-align:left;max-width:320px;touch-action:none;user-select:none}
+.chip[aria-pressed="true"]{outline:3px solid var(--focus)}
+.chip small{display:block;font:600 13px var(--font-ui);color:#6b5534}
+.shelfgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.shelf{border:1px solid var(--line);background:var(--bg);min-height:130px;display:grid;grid-template-rows:auto 1fr;cursor:pointer}
+.shelf header{padding:8px 10px;border-bottom:3px solid var(--wood-2);font-weight:700;font-size:15px;background:var(--surface)}
+.shelf .slot{padding:8px;display:grid;gap:6px;align-content:start}
+.shelf.over{outline:3px dashed var(--focus);outline-offset:-3px}
+.chip.right{border-color:var(--ok);box-shadow:inset 4px 0 0 var(--ok)}
+.chip.wrong{border-color:var(--warn);box-shadow:inset 4px 0 0 var(--warn)}
+.dragghost{position:fixed;z-index:60;pointer-events:none;opacity:.9;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+
+/* timeline */
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:n}
+.tl li{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--line);padding:8px 10px;touch-action:none}
+.tl li::before{counter-increment:n;content:counter(n);font-family:var(--font-read);font-size:20px;color:var(--gold-ink);text-align:center}
+.tl li.drag{opacity:.4}
+.tl .mv{display:flex;gap:4px}
+.tl .mv button{font:700 14px var(--font-ui);width:34px;height:32px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:2px;cursor:pointer}
+.tl .grip{cursor:grab}
+.tl li.right{border-left:4px solid var(--ok)}
+
+/* lamp */
+.ms{position:relative;background:var(--parch);color:var(--parch-ink);border:1px solid #b9a27a;font-family:var(--font-read);font-size:19px;line-height:2;padding:26px 30px;min-height:330px;overflow:hidden;cursor:none;touch-action:none;user-select:none}
+.ms .layer{position:absolute;inset:0;padding:26px 30px}
+.ms .base .v{opacity:1}
+.ms .uvl{background:rgba(20,0,50,.86);color:#d9c8ff;-webkit-mask-image:radial-gradient(circle 78px at var(--x,50%) var(--y,50%),#000 62%,transparent 100%);mask-image:radial-gradient(circle 78px at var(--x,50%) var(--y,50%),#000 62%,transparent 100%)}
+.ms .uvl .note{color:#ffe28a;font-family:var(--font-ui);font-size:16px;font-weight:600}
+.ms .uvl .v{color:#cdb8ff}
+.vn{font-size:13px;vertical-align:super;font-family:var(--font-ui);color:#8a6b3a;margin-right:2px}
+.uvl .vn{color:#ffe28a}
+.ms .ring{position:absolute;width:156px;height:156px;margin:-78px 0 0 -78px;left:var(--x,50%);top:var(--y,50%);border:2px solid rgba(201,166,255,.8);border-radius:50%;pointer-events:none}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choices button{font:600 16px var(--font-ui);padding:10px 14px;border:1px solid var(--navy);background:var(--surface);color:var(--navy);border-radius:2px;cursor:pointer}
+
+/* synoptic */
+.syn{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.syn .col{background:var(--parch);color:var(--parch-ink);border:1px solid #b9a27a;padding:14px 16px;font-family:var(--font-read);font-size:20px;line-height:1.9}
+.syn .col b{display:block;font:700 14px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:#6b5534}
+.w{border:0;background:transparent;color:inherit;font:inherit;padding:0 2px;border-radius:2px;cursor:pointer}
+.w[aria-pressed="true"]{background:#f2a900;color:#2a1a0c}
+.w.found{background:#cfe9d6;color:#14381f}
+
+/* final */
+.wheels{display:flex;gap:10px;flex-wrap:wrap}
+.wheel{display:grid;grid-template-rows:auto auto auto;gap:4px;justify-items:center}
+.wheel output{width:62px;height:70px;display:grid;place-items:center;background:linear-gradient(#e6c06a,#b8862b);color:#2a1a0c;font:700 34px var(--font-read);border:2px solid #6e4d00;border-radius:4px}
+.wheel button{width:62px;height:34px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;border-radius:2px}
+.inscr{font-family:var(--font-read);font-size:22px;background:var(--parch);color:var(--parch-ink);border:1px solid #b9a27a;padding:14px 18px;margin:0}
+
+/* win */
+.win{background:var(--navy);color:#fff;border-bottom:5px solid #f2a900;padding:24px;display:grid;gap:12px}
+.win h2{color:#fff;font-size:clamp(28px,4vw,40px)}
+.win .rank{font-family:var(--font-read);font-size:24px;color:#f2c45a}
+.win .stats{display:flex;flex-wrap:wrap;gap:24px}
+.win .stats div{font-size:15px;color:#d7def0}
+.win .stats b{display:block;font-family:var(--font-read);font-size:30px;font-weight:400;color:#fff}
+.win ul{margin:0;padding-left:20px;display:grid;gap:4px;color:#e9edf5}
+.win .btn{background:#f2a900;color:#012169}
+.notes{background:var(--surface);border:1px solid var(--line);border-left:4px solid #f2a900;padding:22px;display:grid;gap:12px}
+.notes h2{font-size:24px}
+.notes ul{margin:0;padding-left:20px;display:grid;gap:8px;color:var(--muted)}
+.notes ul b{color:var(--ink)}
+footer{padding-top:18px;border-top:1px solid var(--line);font-size:14px;color:var(--muted);display:grid;gap:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:860px){
+  .room{grid-template-columns:repeat(2,minmax(0,1fr));padding-top:30px}
+  .door{grid-column:1/-1;min-height:220px;margin-top:6px}
+  .poster{grid-template-columns:1fr}
+  .poster .art{min-height:220px;order:-1}
+  .shelfgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .syn{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:no-preference){.cab,.token{transition:background .25s,transform .25s}.token.got{animation:pop .5s}@keyframes pop{50%{transform:scale(1.25)}}}
+html,body{margin:0}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="mh-in">
+    <div><span class="mh-kicker">Sample learning game · Candler School of Theology</span><span class="mh-course">Introduction to Biblical Interpretation</span></div>
+    <span class="mh-mod">Escape room · about 15 minutes</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="poster grain">
+    <div class="copy">
+      <span class="kick">An escape room in four locks</span>
+      <h1>The Locked<span>Archive</span></h1>
+      <p class="tag">Read carefully. The way out is written down.</p>
+      <a class="btn" href="#roomSec">Enter the archive</a>
+    </div>
+    <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 400 360" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="glw" cx="50%" cy="45%" r="55%"><stop offset="0" stop-color="#ffd27a" stop-opacity=".95"/><stop offset=".35" stop-color="#f2a900" stop-opacity=".55"/><stop offset="1" stop-color="#f2a900" stop-opacity="0"/></radialGradient>
+            <linearGradient id="arch" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2b66"/><stop offset="1" stop-color="#050a1c"/></linearGradient>
+            <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe7a6"/><stop offset=".5" stop-color="#e0a52a"/><stop offset="1" stop-color="#8a5a00"/></linearGradient>
+          </defs>
+          <circle cx="210" cy="170" r="190" fill="url(#glw)" opacity=".55"/>
+          <path d="M90 360V150a120 120 0 0 1 240 0v210Z" fill="url(#arch)" stroke="#f2a900" stroke-width="3" opacity=".95"/>
+          <path d="M108 360V154a102 102 0 0 1 204 0v206" fill="none" stroke="#f2a900" stroke-opacity=".35" stroke-width="1.5"/>
+          <g opacity=".9">
+            <rect x="112" y="210" width="196" height="6" fill="#8a5a2b"/><rect x="112" y="282" width="196" height="6" fill="#8a5a2b"/>
+            <g id="bk1"><rect x="116" y="170" width="12" height="40" fill="#7a2626"/><rect x="130" y="176" width="9" height="34" fill="#2f4f8f"/><rect x="141" y="166" width="14" height="44" fill="#c9a24a"/><rect x="157" y="180" width="8" height="30" fill="#3e6b45"/><rect x="167" y="172" width="12" height="38" fill="#5b2a6e"/><rect x="181" y="168" width="10" height="42" fill="#7a2626"/><rect x="193" y="178" width="13" height="32" fill="#e8dcc0"/></g>
+            <g><rect x="232" y="174" width="11" height="36" fill="#2f4f8f"/><rect x="245" y="168" width="14" height="42" fill="#7a2626"/><rect x="261" y="180" width="9" height="30" fill="#c9a24a"/><rect x="272" y="170" width="12" height="40" fill="#3e6b45"/><rect x="286" y="176" width="16" height="34" fill="#5b2a6e"/></g>
+            <g><rect x="116" y="246" width="14" height="36" fill="#3e6b45"/><rect x="132" y="240" width="10" height="42" fill="#e8dcc0"/><rect x="144" y="250" width="12" height="32" fill="#7a2626"/><rect x="158" y="242" width="9" height="40" fill="#2f4f8f"/><rect x="169" y="248" width="15" height="34" fill="#c9a24a"/></g>
+            <g><rect x="236" y="244" width="12" height="38" fill="#5b2a6e"/><rect x="250" y="250" width="9" height="32" fill="#c9a24a"/><rect x="261" y="240" width="14" height="42" fill="#2f4f8f"/><rect x="277" y="246" width="11" height="36" fill="#7a2626"/><rect x="290" y="252" width="12" height="30" fill="#3e6b45"/></g>
+          </g>
+          <g transform="translate(210 232)">
+            <circle r="34" fill="url(#brass)" stroke="#5a3a00" stroke-width="2"/>
+            <circle r="26" fill="none" stroke="#5a3a00" stroke-opacity=".5"/>
+            <path d="M0-14a8 8 0 0 1 5 14l4 16h-18l4-16a8 8 0 0 1 5-14Z" fill="#1a0f00"/>
+          </g>
+          
+        </svg>
+        <div class="dust"><i style="left:30%;top:70%;animation-delay:0s"></i><i style="left:45%;top:60%;animation-delay:1.5s"></i><i style="left:58%;top:80%;animation-delay:3s"></i><i style="left:66%;top:55%;animation-delay:4.2s"></i><i style="left:40%;top:85%;animation-delay:5.5s"></i><i style="left:72%;top:72%;animation-delay:2.2s"></i><i style="left:52%;top:50%;animation-delay:6.4s"></i><i style="left:35%;top:58%;animation-delay:7.3s"></i><i style="left:62%;top:88%;animation-delay:0.8s"></i></div>
+      </div>
+  </div>
+  <div class="intro">
+    <div class="faithband">
+      <svg class="faiths" viewBox="0 0 408 40" role="img" aria-label="Symbols of several faith traditions: cross, Star of David, crescent and star, dharma wheel, lotus, and flaming chalice" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <g transform="translate(4,4)"><path d="M16 2v28M8 11h16"/></g>
+        <g transform="translate(72,4)"><path d="M16 2 28 23H4Z"/><path d="M16 30 4 9h24Z"/></g>
+        <g transform="translate(140,4)"><path d="M21 4a13 13 0 1 0 0 24a10 10 0 1 1 0-24Z"/><path d="m27 12 1.2 2.6 2.8.3-2.1 1.9.6 2.8-2.5-1.4-2.5 1.4.6-2.8-2.1-1.9 2.8-.3Z"/></g>
+        <g transform="translate(208,4)"><circle cx="16" cy="16" r="13"/><circle cx="16" cy="16" r="3"/><path d="M16 3v10M16 19v10M3 16h10M19 16h10M6.8 6.8l7 7M18.2 18.2l7 7M25.2 6.8l-7 7M13.8 18.2l-7 7"/></g>
+        <g transform="translate(276,4)"><path d="M16 26c-4-4-4-12 0-18c4 6 4 14 0 18Z"/><path d="M16 26c-5-1-10-6-11-13c6 0 10 6 11 13Z"/><path d="M16 26c5-1 10-6 11-13c-6 0-10 6-11 13Z"/><path d="M4 28h24"/></g>
+        <g transform="translate(344,4)"><path d="M6 12h20c0 7-4 11-10 11S6 19 6 12Z"/><path d="M16 23v6M10 30h12"/><path d="M16 10c-3-2-3-5 0-8c1 2 4 3 3 6c-.5 1.5-1.5 2-3 2Z"/></g>
+      </svg>
+      <small>Built for learners from many faith traditions</small>
+    </div>
+    <p>You stayed late in the seminary's rare-book room, and the archivist locked up without seeing you. Four cabinets each hold one letter of the door's combination. Open each one by reading scripture the way a careful interpreter does.</p>
+    <p class="byline">Designed by <b>Keith Pace, D.M.E.</b> as a sample for Candler's Office of Digital Learning</p>
+  </div>
+
+  <section id="roomSec" aria-label="The archive room" style="display:grid;gap:14px">
+    <div class="status" role="group" aria-label="Game status">
+      <span class="s">Time <b id="clock">0:00</b></span>
+      <span class="s">Hints used <b id="hints">0</b></span>
+      <span class="s">Letters
+        <span class="tokens" id="tokens" aria-live="polite"></span></span>
+      <button class="btn ghost" id="restart">Restart</button>
+    </div>
+    <div class="room" id="room"></div>
+    <p class="small">Open the cabinets in any order. Each hint adds one minute to your time.</p>
+    <div id="panel" class="panel" tabindex="-1" aria-live="polite">
+      <span class="step">Start here</span>
+      <h2>Choose a cabinet</h2>
+      <p class="small" style="font-size:16px">Each cabinet teaches one interpretive habit: knowing the genre, placing a text in history, weighing manuscripts, and comparing parallel passages. The clock starts when you open your first cabinet.</p>
+    </div>
+  </section>
+
+  <aside class="notes" aria-label="Design notes">
+    <h2>Why this activity</h2>
+    <ul>
+      <li><b>Each lock is a learning outcome.</b> Students identify genre, place texts in history, apply a principle of textual criticism, and compare synoptic parallels. Each solved lock ends with a short "what you practiced" note.</li>
+      <li><b>Productive struggle, with a safety net.</b> Wrong answers give specific feedback, and hints cost time rather than ending the game, so students keep reasoning instead of guessing.</li>
+      <li><b>More than clicking.</b> Students drag passages onto shelves, reorder a timeline, sweep an ultraviolet lamp across a manuscript, and mark the exact words that differ between Gospels.</li>
+      <li><b>Ready for a course shell.</b> It works as a module opener in a hybrid M.Div. or a D.Min. orientation. Scripture quotations are from the King James Version, which is in the public domain, so the game can be shared and adapted freely.</li>
+      <li><b>Accessibility (WCAG 2.1 AA):</b> every drag has a keyboard equivalent, the lamp moves with arrow keys, and a text version of the hidden notes is always one click away.</li>
+    </ul>
+  </aside>
+
+  <footer>
+    <span>Prepared by Keith Pace · keithpace@me.com · keithpace.com</span>
+    <span>This is an independent sample prepared for a job application, not an official page of Emory University or Candler School of Theology. The archive and its notes are fictional; historical dates are approximate and follow mainstream scholarship. Colors follow Emory's public brand palette for illustration only.</span>
+  </footer>
+</div>
+
+<script>
+document.documentElement.lang='en';
+(function(){
+const $=s=>document.querySelector(s);
+const CABS=[
+ {id:'genre',name:'Genre',letter:'W'},
+ {id:'time',name:'History',letter:'O'},
+ {id:'lamp',name:'Manuscripts',letter:'R'},
+ {id:'syn',name:'Parallels',letter:'D'}
+];
+const G={open:{},hints:0,start:null,elapsed:0,timer:null,mistakes:0,cur:null,won:false};
+
+/* ---------- status ---------- */
+function fmt(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function now(){return G.start?(Date.now()-G.start)/1000+G.hints*60:0;}
+function tick(){$('#clock').textContent=fmt(now());}
+function startClock(){if(!G.start){G.start=Date.now();G.timer=setInterval(tick,1000);}}
+function renderStatus(){
+  $('#hints').textContent=G.hints;
+  $('#tokens').innerHTML=CABS.map(c=>`<span class="token ${G.open[c.id]?'got':''}" aria-label="${G.open[c.id]?'Letter '+c.letter+' from the '+c.name+' cabinet':c.name+' cabinet, still locked'}">${G.open[c.id]?c.letter:'?'}</span>`).join('');
+  tick();
+}
+const BOOKC=['#7a2626','#2f4f8f','#c9a24a','#3e6b45','#5b2a6e','#e8dcc0','#8c4a1e','#1f3d5c'];
+function shelfHTML(seed){let r=seed*9301+49297,h='';const rnd=()=>(r=(r*9301+49297)%233280)/233280;
+  for(let k=0;k<3;k++){h+='<div class="books">';let w=0;while(w<88){const bw=7+Math.floor(rnd()*8),bh=60+Math.floor(rnd()*40);w+=bw+3;if(w>94)break;
+    const c=BOOKC[Math.floor(rnd()*BOOKC.length)];const cls=(rnd()<.3?'band':'')+(rnd()<.06&&w>60?' lean':'');
+    h+=`<b class="${cls}" style="width:${bw}%;height:${bh}%;background:${c}"></b>`;}h+='</div>';}
+  return h;}
+function padlock(open){return `<svg class="padlock" viewBox="0 0 44 52" aria-hidden="true"><defs><linearGradient id="pl${open?1:0}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe7a6"/><stop offset=".55" stop-color="#e0a52a"/><stop offset="1" stop-color="#8a5a00"/></linearGradient></defs>
+  <path d="${open?'M12 24V14a10 10 0 0 1 20 0v-2':'M12 24V15a10 10 0 0 1 20 0v9'}" fill="none" stroke="#c9c2b0" stroke-width="5" stroke-linecap="round"/>
+  <rect x="5" y="22" width="34" height="28" rx="4" fill="url(#pl${open?1:0})" stroke="#5a3a00" stroke-width="1.5"/>
+  ${open?'<path d="M15 36l5 5 9-10" fill="none" stroke="#3a2500" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>':'<path d="M22 31a3.5 3.5 0 0 1 2 6.4l1.5 5.6h-7l1.5-5.6a3.5 3.5 0 0 1 2-6.4Z" fill="#3a2500"/>'}</svg>`;}
+const TRANSOM=`<svg class="transom" viewBox="0 0 120 60" aria-hidden="true"><path d="M4 58a56 56 0 0 1 112 0Z" fill="#0d1d4d" stroke="#c9a24a" stroke-width="2"/><g stroke="#c9a24a" stroke-width="1.5" fill="none"><path d="M60 58V6M60 58 20 22M60 58l40-36M60 58 8 44M60 58l52-14"/><path d="M30 58a30 30 0 0 1 60 0"/></g><g opacity=".85"><path d="M60 58 20 22A56 56 0 0 1 60 2Z" fill="#2f4f8f" opacity=".5"/><path d="M60 58 100 22A56 56 0 0 0 60 2Z" fill="#f2a900" opacity=".45"/><path d="M60 58 8 44A56 56 0 0 1 20 22Z" fill="#7a2626" opacity=".5"/><path d="M60 58l52-14A56 56 0 0 0 100 22Z" fill="#3e6b45" opacity=".5"/></g></svg>`;
+function renderRoom(){
+  const n=Object.keys(G.open).length;
+  $('#room').innerHTML=CABS.map((c,i)=>`<button class="cab" data-id="${c.id}" data-state="${G.open[c.id]?'open':'locked'}" aria-expanded="${G.cur===c.id}" aria-label="${c.name} cabinet, ${G.open[c.id]?'open, letter '+c.letter:'locked'}"><span class="lbl">${c.name}</span><span class="glass" aria-hidden="true">${shelfHTML(i+3)}</span>${padlock(!!G.open[c.id])}<span class="lock">${G.open[c.id]?'Open · '+c.letter:'Locked'}</span></button>`).join('')
+   +`<button class="door" data-id="door" data-ready="${n===4}" aria-expanded="${G.cur==='door'}" aria-label="The door, combination lock, ${n} of 4 letters found">${TRANSOM}<span class="label">The door<small style="display:block;font:600 14px var(--font-ui);letter-spacing:.04em;color:#f6ead2">${n} of 4 letters</small></span><span style="display:grid;gap:10px;justify-items:center;width:100%"><span class="panels" aria-hidden="true"><i></i><i></i><i></i><i></i></span><svg class="kh" viewBox="0 0 30 46" aria-hidden="true"><rect x="1" y="1" width="28" height="44" rx="6" fill="url(#pl0)" stroke="#5a3a00"/><path d="M15 12a5 5 0 0 1 3 9l2 10h-10l2-10a5 5 0 0 1 3-9Z" fill="#1a0f00"/></svg></span></button><div class="rug" aria-hidden="true"></div>`;
+  $('#room').querySelectorAll('button').forEach(b=>b.onclick=()=>openPanel(b.dataset.id));
+}
+function solved(id,learned){
+  if(G.open[id])return;G.open[id]=true;renderStatus();renderRoom();
+  const c=CABS.find(x=>x.id===id);
+  const fb=$('#panel .feedback');if(fb){fb.className='feedback ok';fb.textContent=`The lock clicks open. Inside is a brass tile with the letter ${c.letter}.`;}
+  const l=document.createElement('p');l.className='learned';l.innerHTML='<b>What you practiced:</b> '+learned;$('#panel').appendChild(l);
+  const nx=document.createElement('div');nx.className='row';
+  const next=CABS.find(x=>!G.open[x.id]);
+  nx.innerHTML=next?`<button class="btn" id="goNext">Next: the ${next.name} cabinet</button>`:`<button class="btn" id="goNext">Go to the door</button>`;
+  $('#panel').appendChild(nx);$('#goNext').onclick=()=>openPanel(next?next.id:'door');
+}
+function hintBtn(text){
+  return {html:`<div class="row"><button class="btn ghost" data-hint>Use a hint (+1 min)</button></div><p class="hintbox" hidden></p>`,
+    wire(){const b=$('#panel [data-hint]'),box=$('#panel .hintbox');b.onclick=()=>{if(box.hidden){G.hints++;renderStatus();}box.hidden=false;box.textContent=text;b.disabled=true;};}};
+}
+function wrong(msg){G.mistakes++;const fb=$('#panel .feedback');fb.className='feedback no';fb.textContent=msg;}
+function openPanel(id){
+  G.cur=id;renderRoom();
+  if(id!=='door')startClock();
+  ({genre:pGenre,time:pTime,lamp:pLamp,syn:pSyn,door:pDoor})[id]();
+  const p=$('#panel');p.focus({preventScroll:true});p.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+}
+
+/* ---------- 1. Genre ---------- */
+const GENRES=['Narrative','Poetry','Parable','Letter','Apocalyptic'];
+const PASS=[
+ {id:'gen',ref:'Genesis 12:1',t:'Now the LORD had said unto Abram, Get thee out of thy country, and from thy kindred…',g:'Narrative'},
+ {id:'ps',ref:'Psalm 23:1–2',t:'The LORD is my shepherd; I shall not want. He maketh me to lie down in green pastures…',g:'Poetry'},
+ {id:'mk',ref:'Mark 4:3',t:'Hearken; Behold, there went out a sower to sow…',g:'Parable'},
+ {id:'rom',ref:'Romans 1:1',t:'Paul, a servant of Jesus Christ, called to be an apostle, separated unto the gospel of God…',g:'Letter'},
+ {id:'rev',ref:'Revelation 1:1',t:'The Revelation of Jesus Christ, which God gave unto him, to shew unto his servants things which must shortly come to pass…',g:'Apocalyptic'}
+];
+let gPlace={},gSel=null;
+function pGenre(){
+  const h=hintBtn('Look at how each passage opens. A letter names its sender, and an apocalypse calls itself a "revelation." A parable starts a story to make a point, and poetry repeats ideas in parallel lines.');
+  $('#panel').innerHTML=`<div class="phead"><svg class="pico" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 28h24M6 28V8h4v20M12 28V5h5v23M19 28V10l4-1 4 19"/></svg><span class="step">Cabinet 1 · Genre</span></div><h2>Shelve each passage by its genre</h2>
+  <p class="goal">Genre tells you how to read a text. The archivist shelves by genre, and the lock opens when every passage is on the right shelf.</p>
+  <p class="small">Drag a passage onto a shelf. With a keyboard or touch, select a passage, then select a shelf.</p>
+  <div class="pool" id="pool" aria-label="Unshelved passages"></div>
+  <div class="shelfgrid">${GENRES.map(g=>`<div class="shelf" data-g="${g}" role="button" tabindex="0" aria-label="${g} shelf"><header>${g}</header><div class="slot"></div></div>`).join('')}</div>
+  <div class="row"><button class="btn" id="checkG">Try the lock</button></div>${h.html}<p class="feedback" role="status"></p>`;
+  h.wire();drawGenre();
+  document.querySelectorAll('.shelf').forEach(s=>{const go=()=>{if(gSel){gPlace[gSel]=s.dataset.g;gSel=null;drawGenre();}};s.onclick=go;s.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};});
+  $('#checkG').onclick=()=>{
+    if(G.open.genre)return;
+    if(Object.keys(gPlace).length<PASS.length)return wrong('Shelve all five passages first.');
+    const bad=PASS.filter(p=>gPlace[p.id]!==p.g);drawGenre(true);
+    if(bad.length)return wrong(`${bad.length} ${bad.length>1?'passages are':'passage is'} on the wrong shelf (marked in red). Reread how ${bad.length>1?'they open':'it opens'}.`);
+    solved('genre','Genre shapes meaning. A psalm\'s images ask to be prayed, a parable asks for a response, a letter answers a real congregation\'s questions, and apocalyptic symbols are not a timetable.');
+  };
+}
+function drawGenre(mark){
+  const pool=$('#pool');if(!pool)return;pool.innerHTML='';document.querySelectorAll('.shelf .slot').forEach(s=>s.innerHTML='');
+  PASS.forEach(p=>{
+    const b=document.createElement('button');b.className='chip';b.dataset.id=p.id;b.setAttribute('aria-pressed',gSel===p.id?'true':'false');
+    b.innerHTML=`<small>${p.ref}</small>${p.t}`;
+    if(mark&&gPlace[p.id])b.classList.add(gPlace[p.id]===p.g?'right':'wrong');
+    b.onclick=e=>{e.stopPropagation();if(G.open.genre)return;gSel=gSel===p.id?null:p.id;drawGenre();if(gSel)document.querySelector(`.chip[data-id="${p.id}"]`).focus();};
+    dragify(b,(x,y)=>{const s=[...document.querySelectorAll('.shelf')].find(s=>inR(s,x,y));if(s){gPlace[p.id]=s.dataset.g;}else if(inR(pool,x,y))delete gPlace[p.id];gSel=null;drawGenre();},
+      (x,y)=>document.querySelectorAll('.shelf').forEach(s=>s.classList.toggle('over',inR(s,x,y))));
+    (gPlace[p.id]?document.querySelector(`.shelf[data-g="${gPlace[p.id]}"] .slot`):pool).appendChild(b);
+  });
+  if(!pool.children.length)pool.innerHTML='<span class="small">All passages shelved.</span>';
+}
+function inR(el,x,y){const r=el.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;}
+function dragify(el,drop,over){
+  el.addEventListener('dragstart',e=>e.preventDefault());
+  el.addEventListener('pointerdown',e=>{
+    if(e.button!==0)return;
+    document.querySelectorAll('.dragghost').forEach(x=>x.remove());
+    const sx=e.clientX,sy=e.clientY,id=e.pointerId;let g=null,moved=false;
+    const move=ev=>{if(ev.pointerId!==id)return;
+      if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<6)return;
+      ev.preventDefault();
+      if(!moved){moved=true;g=el.cloneNode(true);g.classList.add('dragghost');g.removeAttribute('aria-pressed');g.style.width=el.offsetWidth+'px';document.body.appendChild(g);}
+      g.style.left=(ev.clientX-20)+'px';g.style.top=(ev.clientY-16)+'px';over&&over(ev.clientX,ev.clientY);};
+    const end=(ev,cancel)=>{if(ev.pointerId!==id)return;
+      window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',cx);
+      if(g)g.remove();document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));
+      if(moved){el._skip=true;setTimeout(()=>el._skip=false,0);if(!cancel)drop(ev.clientX,ev.clientY);}};
+    const up=ev=>end(ev,false),cx=ev=>end(ev,true);
+    window.addEventListener('pointermove',move,{passive:false});window.addEventListener('pointerup',up);window.addEventListener('pointercancel',cx);
+  });
+  el.addEventListener('click',e=>{if(el._skip){e.stopImmediatePropagation();e.preventDefault();}},true);
+}
+
+/* ---------- 2. Timeline ---------- */
+const EVENTS=[
+ {id:'dav',t:'David reigns as king in Jerusalem',d:'c. 1000 BCE'},
+ {id:'fall',t:'Babylon destroys Jerusalem and the Temple',d:'587/586 BCE'},
+ {id:'cyrus',t:'Cyrus of Persia lets the exiles return',d:'538 BCE'},
+ {id:'jesus',t:'Jesus teaches in Galilee',d:'c. 28–30 CE'},
+ {id:'rom',t:'Paul writes his letter to the Romans',d:'c. 57 CE'},
+ {id:'nic',t:'The Council of Nicaea meets',d:'325 CE'}
+];
+let tOrder=null;
+function pTime(){
+  if(!tOrder)tOrder=['jesus','cyrus','nic','dav','rom','fall'];
+  const h=hintBtn('Anchor on the exile. The Temple fell to Babylon before Persia let anyone go home, and David\'s reign came centuries before either. On the Christian side, Paul wrote after Jesus\'s ministry, and Nicaea came almost three centuries after Paul.');
+  $('#panel').innerHTML=`<div class="phead"><svg class="pico" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h14M9 28h14M10 4c0 8 12 8 12 12S10 20 10 28M22 4c0 8-12 8-12 12s12 4 12 12"/></svg><span class="step">Cabinet 2 · History</span></div><h2>Put the archive's index cards in order</h2>
+  <p class="goal">A text means most in its own moment. Arrange these events from earliest (top) to latest (bottom).</p>
+  <p class="small">Drag a card by its handle, or use the arrow buttons.</p>
+  <ol class="tl" id="tl"></ol>
+  <div class="row"><button class="btn" id="checkT">Try the lock</button></div>${h.html}<p class="feedback" role="status"></p>`;
+  h.wire();drawTime();
+  $('#checkT').onclick=()=>{
+    if(G.open.time)return;
+    const right=tOrder.filter((id,i)=>EVENTS[i].id===id).length;
+    if(right<EVENTS.length){drawTime();return wrong(`${right} of 6 cards are in the right place. Keep going.`);}
+    drawTime(true);
+    solved('time','Placing texts on a timeline. Isaiah 40 lands differently when you hear it in exile, and Romans reads differently once you know it came before the Gospels were written down.');
+  };
+}
+function drawTime(reveal){
+  const ol=$('#tl');if(!ol)return;
+  ol.innerHTML=tOrder.map((id,i)=>{const e=EVENTS.find(x=>x.id===id);return `<li data-id="${id}" class="${reveal?'right':''}"><span><span class="grip" aria-hidden="true">⠿ </span>${e.t}${reveal?` <span class="small">(${e.d})</span>`:''}</span><span class="mv"><button data-up="${i}" aria-label="Move ${e.t} earlier" ${i===0||G.open.time?'disabled':''}>↑</button><button data-dn="${i}" aria-label="Move ${e.t} later" ${i===tOrder.length-1||G.open.time?'disabled':''}>↓</button></span></li>`;}).join('');
+  ol.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{const i=+b.dataset.up;[tOrder[i-1],tOrder[i]]=[tOrder[i],tOrder[i-1]];drawTime();ol.querySelector(`[data-up="${i-1}"]`)?.focus()||ol.querySelector(`[data-dn="${i-1}"]`)?.focus();});
+  ol.querySelectorAll('[data-dn]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dn;[tOrder[i+1],tOrder[i]]=[tOrder[i],tOrder[i+1]];drawTime();ol.querySelector(`[data-dn="${i+1}"]`)?.focus()||ol.querySelector(`[data-up="${i+1}"]`)?.focus();});
+  if(G.open.time)return;
+  ol.querySelectorAll('li').forEach(li=>{
+    const grip=li.querySelector('.grip');
+    li.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;li.setPointerCapture(e.pointerId);li.classList.add('drag');});
+    li.addEventListener('pointermove',e=>{if(!li.hasPointerCapture(e.pointerId))return;
+      const items=[...ol.children];const tgt=items.find(x=>x!==li&&inR(x,e.clientX,e.clientY));
+      if(tgt){const a=tOrder.indexOf(li.dataset.id),b=tOrder.indexOf(tgt.dataset.id);tOrder.splice(a,1);tOrder.splice(b,0,li.dataset.id);
+        if(b>a)tgt.after(li);else tgt.before(li);}});
+    li.addEventListener('pointerup',e=>{if(!li.hasPointerCapture(e.pointerId))return;li.releasePointerCapture(e.pointerId);li.classList.remove('drag');drawTime();});
+  });
+}
+
+/* ---------- 3. Lamp ---------- */
+function pLamp(){
+  const h=hintBtn('Sweep the lamp slowly along the right margin, next to the verse numbers. Scribes left their notes beside the verse they were talking about.');
+  const verses=[
+   ['6','And he saith unto them, Be not affrighted: Ye seek Jesus of Nazareth, which was crucified: he is risen; he is not here…',''],
+   ['7','But go your way, tell his disciples and Peter that he goeth before you into Galilee…','A later hand: "Galilee again, as at the start."'],
+   ['8','And they went out quickly, and fled from the sepulchre… neither said they any thing to any man; for they were afraid.','Here the two oldest complete copies END.'],
+   ['9','Now when Jesus was risen early the first day of the week, he appeared first to Mary Magdalene…','Not in our oldest copies. Added later?']
+  ];
+  const line=(uv)=>verses.map(v=>`<p style="margin:0 0 10px;position:relative;padding-right:${uv?'0':'0'}"><span class="vn">16:${v[0]}</span><span class="v">${v[1]}</span>${uv&&v[2]?`<br><span class="note">✎ ${v[2]}</span>`:(v[2]?'<br><span class="note" style="visibility:hidden">✎ '+v[2]+'</span>':'')}</p>`).join('');
+  $('#panel').innerHTML=`<div class="phead"><svg class="pico" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 20h16l-3-9H11Z"/><path d="M16 4v4M6 8l2.5 2.5M26 8l-2.5 2.5"/><path d="M12 20v6h8v-6"/></svg><span class="step">Cabinet 3 · Manuscripts</span></div><h2>Read the margins under ultraviolet light</h2>
+  <p class="goal">This page copies the end of Mark's Gospel. A scribe left faded notes in the margins that only show under ultraviolet light. Find them, then answer the lock's question.</p>
+  <p class="small">Move the lamp with your pointer or finger. With a keyboard, focus the page and use the arrow keys.</p>
+  <div class="ms" id="ms" tabindex="0" role="application" aria-label="Manuscript page with an ultraviolet lamp. Use arrow keys to move the lamp.">
+    <div class="layer base">${line(false)}</div>
+    <div class="layer uvl" aria-hidden="true">${line(true)}</div>
+    <div class="ring" aria-hidden="true"></div>
+  </div>
+  <details><summary class="small" style="cursor:pointer">Read the hidden notes as text instead</summary><ul class="small">${verses.filter(v=>v[2]).map(v=>`<li>Beside 16:${v[0]}: ${v[2]}</li>`).join('')}</ul></details>
+  <p style="margin:0"><b>The lock asks:</b> In the oldest complete manuscripts of Mark, which verse is the last one?</p>
+  <div class="choices">${['16:7','16:8','16:9','16:20'].map(v=>`<button data-v="${v}">${v}</button>`).join('')}</div>
+  ${h.html}<p class="feedback" role="status"></p>`;
+  h.wire();
+  const ms=$('#ms');let x=60,y=50;
+  const set=()=>{ms.style.setProperty('--x',x+'%');ms.style.setProperty('--y',y+'%');};
+  const mv=e=>{const r=ms.getBoundingClientRect();x=(e.clientX-r.left)/r.width*100;y=(e.clientY-r.top)/r.height*100;set();};
+  ms.addEventListener('pointermove',mv);ms.addEventListener('pointerdown',mv);
+  ms.addEventListener('keydown',e=>{const d={ArrowLeft:[-4,0],ArrowRight:[4,0],ArrowUp:[0,-5],ArrowDown:[0,5]}[e.key];if(d){e.preventDefault();x=Math.min(100,Math.max(0,x+d[0]));y=Math.min(100,Math.max(0,y+d[1]));set();}});
+  set();
+  document.querySelectorAll('.choices button').forEach(b=>b.onclick=()=>{
+    if(G.open.lamp)return;
+    if(b.dataset.v==='16:8')solved('lamp','Textual criticism. Codex Sinaiticus and Codex Vaticanus, both from the fourth century, end Mark at 16:8. Most scholars see verses 9–20 as a later addition, which is why many Bibles bracket them or add a footnote.');
+    else if(b.dataset.v==='16:20')wrong('16:20 is where most printed Bibles end, including the King James Version. The lock wants the oldest manuscripts. Check the margins again.');
+    else wrong('Not quite. Find the note that mentions the oldest copies.');
+  });
+}
+
+/* ---------- 4. Synoptic ---------- */
+const MT='Blessed are the poor in spirit: for theirs is the kingdom of heaven.';
+const LK='Blessed be ye poor: for yours is the kingdom of God.';
+const TARGET=new Set(['in','spirit','heaven']);
+let sSel=new Set();
+function pSyn(){
+  const h=hintBtn('Ignore small grammar changes like "are" and "be ye." Look for words that change the meaning: what kind of poor, and what the kingdom is called.');
+  const words=MT.split(' ');
+  $('#panel').innerHTML=`<div class="phead"><svg class="pico" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6h9v20H5ZM18 6h9v20h-9Z"/><path d="M8 11h4M8 15h4M21 11h4M21 15h4M14 13h4"/></svg><span class="step">Cabinet 4 · Parallels</span></div><h2>Spot what Matthew says differently</h2>
+  <p class="goal">Matthew and Luke both report this beatitude, in different words. Select the words in Matthew that change its meaning compared with Luke. (There are three.)</p>
+  <div class="syn">
+    <div class="col"><b>Matthew 5:3</b><span id="mt">${words.map((w,i)=>`<button class="w" data-i="${i}" aria-pressed="false">${w}</button>`).join(' ')}</span></div>
+    <div class="col"><b>Luke 6:20</b>${LK}</div>
+  </div>
+  <div class="row"><button class="btn" id="checkS">Try the lock</button><span class="small" id="selCount">0 selected</span></div>${h.html}<p class="feedback" role="status"></p>`;
+  h.wire();sSel=new Set();
+  const clean=w=>w.toLowerCase().replace(/[^a-z]/g,'');
+  document.querySelectorAll('#mt .w').forEach(b=>b.onclick=()=>{if(G.open.syn)return;const i=+b.dataset.i;sSel.has(i)?sSel.delete(i):sSel.add(i);b.setAttribute('aria-pressed',sSel.has(i));$('#selCount').textContent=sSel.size+' selected';});
+  $('#checkS').onclick=()=>{
+    if(G.open.syn)return;
+    const picked=[...sSel].map(i=>clean(words[i]));
+    const ok=picked.length===3&&picked.every(w=>TARGET.has(w));
+    if(!ok){const extra=picked.filter(w=>!TARGET.has(w));return wrong(extra.length?`"${extra[0]}" is only a grammar change. Look for words that change the meaning.`:'You are close. Find all three words.');}
+    document.querySelectorAll('#mt .w').forEach(b=>{if(TARGET.has(clean(b.textContent)))b.classList.add('found');});
+    solved('syn','Synoptic comparison. Matthew\'s "poor in spirit" points to a spiritual posture, while Luke speaks to people who are poor. Matthew\'s "kingdom of heaven" follows a Jewish habit of reverently avoiding the word God. Each Evangelist shaped the tradition for his community.');
+  };
+}
+
+/* ---------- Door ---------- */
+let wheel=['A','A','A','A'];
+function pDoor(){
+  const have=CABS.filter(c=>G.open[c.id]).map(c=>c.letter);
+  if(G.won)return showWin();
+  $('#panel').innerHTML=`<span class="step">The door</span><h2>Set the combination</h2>
+  <p class="inscr">Carved above the lock: "In the beginning was the ____." <span class="small" style="font-family:var(--font-ui)">(John 1:1)</span></p>
+  <p class="small">${have.length<4?`You have ${have.length} of 4 letters (${have.join(', ')||'none yet'}). You can try now, but the cabinets hold the letters.`:'You have all four letters: '+have.join(', ')+'.'}</p>
+  <div class="wheels">${wheel.map((l,i)=>`<div class="wheel"><button data-w="${i}" data-d="-1" aria-label="Wheel ${i+1} previous letter">▲</button><output aria-live="polite" aria-label="Wheel ${i+1}">${l}</output><button data-w="${i}" data-d="1" aria-label="Wheel ${i+1} next letter">▼</button></div>`).join('')}</div>
+  <div class="row"><button class="btn" id="tryDoor">Turn the handle</button></div><p class="feedback" role="status"></p>`;
+  document.querySelectorAll('.wheel button').forEach(b=>b.onclick=()=>{const i=+b.dataset.w;wheel[i]=String.fromCharCode((wheel[i].charCodeAt(0)-65+ +b.dataset.d+26)%26+65);b.parentElement.querySelector('output').textContent=wheel[i];});
+  document.querySelectorAll('.wheel output').forEach((o,i)=>{o.tabIndex=0;o.onkeydown=e=>{if(/^[a-z]$/i.test(e.key)){wheel[i]=e.key.toUpperCase();o.textContent=wheel[i];const n=document.querySelectorAll('.wheel output')[i+1];n&&n.focus();}};});
+  $('#tryDoor').onclick=()=>{
+    if(wheel.join('')==='WORD'){G.won=true;clearInterval(G.timer);G.elapsed=now();showWin();}
+    else wrong('The handle will not turn. Each cabinet holds one letter, and the inscription tells you the order.');
+  };
+}
+function showWin(){
+  const t=G.elapsed,rank=t<=420&&G.hints===0?'Head Archivist':t<=720?'Senior Research Fellow':'Research Assistant';
+  $('#panel').outerHTML=`<div id="panel" class="win" tabindex="-1" aria-live="polite"><span class="step" style="color:#f2c45a">You escaped</span><h2>The door swings open.</h2>
+  <div class="rank">Rank: ${rank}</div>
+  <div class="stats"><div><b>${fmt(t)}</b>Time, including hints</div><div><b>${G.hints}</b>Hints used</div><div><b>${G.mistakes}</b>Wrong tries</div></div>
+  <p style="margin:0">"In the beginning was the Word" (John 1:1). Every lock asked you to read the Word with care. Here is what you practiced:</p>
+  <ul><li>Reading a passage by its genre</li><li>Placing texts in their historical moment</li><li>Weighing manuscript evidence</li><li>Comparing parallel Gospel accounts</li></ul>
+  <div class="row"><button class="btn" id="again">Play again for a better rank</button></div></div>`;
+  $('#again').onclick=reset;$('#panel').focus();
+}
+function reset(){
+  clearInterval(G.timer);Object.assign(G,{open:{},hints:0,start:null,elapsed:0,timer:null,mistakes:0,cur:null,won:false});
+  gPlace={};gSel=null;tOrder=null;wheel=['A','A','A','A'];
+  const p=$('#panel');p.outerHTML=`<div id="panel" class="panel" tabindex="-1" aria-live="polite"><span class="step">Start here</span><h2>Choose a cabinet</h2><p class="small" style="font-size:16px">Each cabinet teaches one interpretive habit. The clock starts when you open your first cabinet.</p></div>`;
+  $('#clock').textContent='0:00';renderStatus();renderRoom();
+}
+$('#restart').onclick=reset;
+renderStatus();renderRoom();
+})();
+</script>
+</body>
+</html>
